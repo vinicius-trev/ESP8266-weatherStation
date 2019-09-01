@@ -5,8 +5,8 @@
 #include <NTPClient.h>
 #include <Adafruit_BMP085.h>    // Biblioteca do sensor BMP 180 (temp pressao e altitude)
 
-const char* ssid     = "GVT-4FFB";
-const char* password = "SENHA";
+const char* ssid     = "ID";
+const char* password = "PASS";
 const int sleepTimeS = 600; //18000 for Half hour, 300 for 5 minutes etc.
 int16_t utc = -3; //UTC -3:00 Brazil
 float voltage;
@@ -14,15 +14,15 @@ float voltage;
 ///////////////Weather////////////////////////
 char server [] = "weatherstation.wunderground.com";
 char WEBPAGE [] = "GET /weatherstation/updateweatherstation.php?";
-char ID [] = "ICAMPINA39";
-char PASSWORD [] = "ado0qfml";
+char ID [] = "ID";
+char PASSWORD [] = "PASS";
 
 
 /////////////IFTTT Low Battery///////////////////////
 const char* host = "maker.ifttt.com";  //dont change
 const String IFTTT_Event_low = "low_battery";
 const int puertoHost = 80;
-const String Maker_Key = "fl-YK3430rwsRfVQqPTv8FLxgimY272S2HWXT6UmRVn";
+const String Maker_Key = "KEY";
 String conexionIF_low = "POST /trigger/" + IFTTT_Event_low + "/with/key/" + Maker_Key + " HTTP/1.1\r\n" +
                     "Host: " + host + "\r\n" +
                     "Content-Type: application/x-www-form-urlencoded\r\n\r\n";
