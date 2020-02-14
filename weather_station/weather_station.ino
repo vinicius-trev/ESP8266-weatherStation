@@ -170,7 +170,7 @@ void mandarNot() {
       Serial.println("Failed connection");
       return;
     }
-    if(voltage < 3.0)
+    if(voltage < 3.3)
     {
      Serial.println("Low battery");
      delay(500);
