@@ -14,7 +14,6 @@ To use the code provided on this repo, you need to change the ssid and password 
 The WeatherUndergound is used to POST the weather data, making it public to everyone on the website.
 
 ```c
-Line
 const char* ssid     = "YOUR_SSID"; 
 const char* password = "YOUR_WIFI_PSWD";
  . 
