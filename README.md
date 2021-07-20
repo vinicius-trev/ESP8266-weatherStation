@@ -15,13 +15,13 @@ The WeatherUndergound is used to POST the weather data, making it public to ever
 
 ```c
 Line
- 08  const char* ssid     = "YOUR_SSID"; 
- 09  const char* password = "YOUR_WIFI_PSWD";
+const char* ssid     = "YOUR_SSID"; 
+const char* password = "YOUR_WIFI_PSWD";
  . 
  .
  .
- 17  char ID [] = "WEATHER_STATION_ID";
- 18  char PASSWORD [] = "WEATHER_STATION_KEY";
+char ID [] = "WEATHER_STATION_ID";
+char PASSWORD [] = "WEATHER_STATION_KEY";
 ```
 
 Currently, the weather station is powered by a 5W solar panel using a iPhone 7 Plus Lithium Battery.
