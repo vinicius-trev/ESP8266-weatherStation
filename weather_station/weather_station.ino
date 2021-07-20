@@ -1,40 +1,23 @@
 
-#include <Adafruit_HTU21DF.h>   // Biblioteca do sensor HTU21D (temp e umidade)
+#include <math.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include <Adafruit_BMP085.h>    // Biblioteca do sensor BMP 180 (temp pressao e altitude)
+#include <Adafruit_HTU21DF.h>   // Biblioteca do sensor HTU21D (temp e umidade) 
 
-const char* ssid     = "ID";
-const char* password = "PASS";
-const int sleepTimeS = 600; //18000 for Half hour, 300 for 5 minutes etc.
-int16_t utc = -3; //UTC -3:00 Brazil
-float voltage;
+const char* ssid     = "YOUR_SSID";
+const char* password = "TOUR_WIFI_PSWD";
+const int sleepTimeS = 60; //18000 for Half hour, 300 for 5 minutes etc.
+const int16_t utc = -3; //UTC -3:00 Brazil
 
 ///////////////Weather////////////////////////
-char server [] = "weatherstation.wunderground.com";
-char WEBPAGE [] = "GET /weatherstation/updateweatherstation.php?";
-char ID [] = "ID";
-char PASSWORD [] = "PASS";
-
-
-/////////////IFTTT Low Battery///////////////////////
-const char* host = "maker.ifttt.com";  //dont change
-const String IFTTT_Event_low = "low_battery";
-const int puertoHost = 80;
-const String Maker_Key = "KEY";
-String conexionIF_low = "POST /trigger/" + IFTTT_Event_low + "/with/key/" + Maker_Key + " HTTP/1.1\r\n" +
-                    "Host: " + host + "\r\n" +
-                    "Content-Type: application/x-www-form-urlencoded\r\n\r\n";
-//////////////////////////////////////////
-
-
-/////////////Overcharged Battery///////////////////////
-const String IFTTT_Event_high = "battery_overcharged";
-String conexionIF_high = "POST /trigger/" + IFTTT_Event_high + "/with/key/" + Maker_Key + " HTTP/1.1\r\n" +
-                    "Host: " + host + "\r\n" +
-                    "Content-Type: application/x-www-form-urlencoded\r\n\r\n";
-//////////////////////////////////////////
+const char server [] = "weatherstation.wunderground.com";
+const char WEBPAGE [] = "GET /weatherstation/updateweatherstation.php?";
+const char ID [] = "WEATHER_STATION_ID";
+const char PASSWORD [] = "WEATHER_STATION_KEY";
+const double R2 = 10000;            // 10k ohm series resistor
+const double VCC = 3.3;
 
 Adafruit_HTU21DF sensorHTU;      // Objeto para representar o sensor HTU
 Adafruit_BMP085 BMP180;         // Objeto para representar o sensor BMP180
@@ -51,7 +34,6 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
-  pinMode(A0, INPUT);
 
   // Conectando ao WiFi
   Serial.println();
@@ -84,42 +66,66 @@ void setup()
   }
 }
 
-void loop() {
-  
-  // Calculando e imprimindo no console a voltagem da Bateria
-  int level = analogRead(A0);
-  voltage = level / 1060.0;
-  voltage = voltage * 4.3;
-  Serial.print("Voltagem 18650: ");
-  Serial.println(voltage);
+void loop() 
+{ 
+  // Get sensor data
+  // NTC
+  double tempNTC_c = Thermister(AnalogReadFiltered());
+  double tempNTC_f = (tempNTC_c * 9.0) / 5.0 + 32.0;
 
- 
-  //Get sensor data
-  //Temperature
-  double tempc = sensorHTU.readTemperature();                 // Lê os valores de Temperatura em Cesius nos registradores do HTU
+  // HTU
+  double tempHTU_c = sensorHTU.readTemperature();             // Lê os valores de Temperatura em Cesius nos registradores do HTU
+  double tempHTU_f =  (tempHTU_c * 9.0) / 5.0 + 32.0;
   double humidity = sensorHTU.readHumidity();                 // Lê os valores da Umidade em Celsius nos registradores do HTU
-  double tempf =  (tempc * 9.0) / 5.0 + 32.0;
-  double dewptf = (dewPoint(tempf, humidity));
 
-  //Pressure
+  // Pressure
+  double tempBMP_c = BMP180.readTemperature();
+  double tempBMP_f =(tempBMP_c * 9.0) / 5.0 + 32.0;
   double pressure = BMP180.readPressure() * 0.000295300586467;       // Lê a pressão em inches de mercurio nos registradores do BMP
   double altitude = BMP180.readAltitude();                           // Lê o valor para a altitude nos registradores do BMP
 
+  // Mean TEMP and Dew Point
+  double mean_temp_c = (tempNTC_c + tempHTU_c + tempBMP_c) / 3.0;
+  double mean_temp_f = (mean_temp_c * 9.0) / 5.0 + 32.0;
+  double dewpt_f = (dewPoint(mean_temp_f, humidity));
+
+
   // Imprime os dados capturados no console do arduino
-//  Serial.println("+++++++++++++++++++++++++");
-//  Serial.print("TempCelsius: ");
-//  Serial.print(tempc);
-//  Serial.println(" *C");
-//  Serial.print("Umidade: ");
-//  Serial.println(humidity);
-//  Serial.print("Pressao: ");
-//  Serial.print(pressure);
-//  Serial.println(" hPa");
-//  Serial.print("Altitude: ");
-//  Serial.print(altitude);
-//  Serial.println(" m");
-//  Serial.print("dewPointF: ");
-//  Serial.println(dewptf);
+  Serial.println("+++++++++++++++++++++++++");
+  Serial.print("TempNTC-C: ");
+  Serial.print(tempNTC_c);
+  Serial.print(" *C ");
+  Serial.print("TempNTC-F: ");
+  Serial.print(tempNTC_f);
+  Serial.println(" F");
+  Serial.print("tempHTU-C: ");
+  Serial.print(tempHTU_c);
+  Serial.print(" *C ");
+  Serial.print("TempHTU-F: ");
+  Serial.print(tempHTU_f);
+  Serial.println(" F");
+  Serial.print("tempBMP-C: ");
+  Serial.print(tempBMP_c);
+  Serial.print(" *C ");
+  Serial.print("TempBMP-F: ");
+  Serial.print(tempBMP_f);
+  Serial.println(" F");
+  Serial.print("meanTemp-C: ");
+  Serial.print(mean_temp_c);
+  Serial.print(" *C ");
+  Serial.print("meanTemp-F: ");
+  Serial.print(mean_temp_f);
+  Serial.println(" F");
+  Serial.print("Umidade: ");
+  Serial.println(humidity);
+  Serial.print("Pressao: ");
+  Serial.print(pressure);
+  Serial.println(" hPa");
+  Serial.print("Altitude: ");
+  Serial.print(altitude);
+  Serial.println(" m");
+  Serial.print("dewPointF: ");
+  Serial.println(dewpt_f);
 
 
   // Enviando as informações para o Wunderground
@@ -139,9 +145,9 @@ void loop() {
   client.print(PASSWORD);
   client.print("&dateutc=now");
   client.print("&tempf=");
-  client.print(tempf);
+  client.print(mean_temp_f);
   client.print("&dewptf=");
-  client.print(dewptf);
+  client.print(dewpt_f);
   client.print("&humidity=");
   client.print(humidity);
   client.print("&baromin=");
@@ -149,49 +155,7 @@ void loop() {
   client.print("&softwaretype=ESP%208266O%20version1&action=updateraw&realtime=1&rtfreq=2.5");
   client.println();
   delay(2500);
-  mandarNot();
   sleepMode();
-}
-
-
-void mandarNot() {
-  // Antes de mandar notificação verifica se já enviou naquele mesmo dia
-  String formattedDate = timeClient.getFormattedDate();
-  String dia = formattedDate.substring(8, formattedDate.length()-10);
-  int diaHoje = dia.toInt();
- 
-  if(diaHoje != RTCdata.dia)
-  {    
-    RTCdata.dia=diaHoje;
-    ESP.rtcUserMemoryWrite(65, (uint32_t*) &RTCdata, sizeof(RTCdata));
-    WiFiClient client;
-    if (!client.connect(host, puertoHost)) //Check connection
-    {
-      Serial.println("Failed connection");
-      return;
-    }
-    if(voltage < 3.3)
-    {
-     Serial.println("Low battery");
-     delay(500);
-     client.print(conexionIF_low);//Send information
-     delay(10);
-    
-    }
-    else if(voltage > 4.3)
-    {
-      Serial.println("Battery Overcharged");
-      delay(500);
-      client.print(conexionIF_low);//Send information
-      delay(10);
-    }
-    
-    while (client.available())
-      {
-        String line = client.readStringUntil('\r');
-        Serial.print(line);
-      }
-  }
 }
 
 void sleepMode() {
@@ -215,4 +179,26 @@ double dewPoint(double celsius, double humidity)
   // (2) DEWPOINT = F(Vapor Pressure)
   double T = log(VP / 0.61078); // temp var
   return (241.88 * T) / (17.558 - T);
+}
+
+int AnalogReadFiltered() {
+  int val = 0;
+  for(int i = 0; i < 20; i++) {
+    val += analogRead(A0);
+    delay(1);
+  }
+
+  val = val / 20;
+  return val;
+}
+
+double Thermister(int val) {
+
+  double V_NTC = ((double)val * VCC) / 1024;
+  double R_NTC = (VCC * R2 / V_NTC) - R2;
+  R_NTC = log(R_NTC);
+  double Temp = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * R_NTC * R_NTC ))* R_NTC );
+  Temp = Temp - 273.15;        
+  return Temp;
+
 }
